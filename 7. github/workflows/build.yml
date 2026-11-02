@@ -1,0 +1,23 @@
+name: Build DLL Emulator
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Compile DLL (Release x64)
+      run: msbuild EasyAntiCheat.sln /p:Configuration=Release /p:Platform=x64
+
+    - name: Upload Finished DLL
+      uses: actions/upload-artifact@v4
+      with:
+        name: EasyAntiCheat_x64_DLL
+        path: x64/Release/EasyAntiCheat_x64.dll
