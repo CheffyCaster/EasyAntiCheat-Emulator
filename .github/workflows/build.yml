@@ -13,8 +13,24 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
 
-    - name: Compile DLL (Release x64)
-      run: msbuild EasyAntiCheat.sln /p:Configuration=Release /p:Platform=x64 /p:WindowsTargetPlatformVersion=""
+    - name: Detect and Compile with Installed Windows SDK
+      shell: pwsh
+      run: |
+        # Find the highest installed Windows 10/11 SDK version from the registry
+        $sdkVersion = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0" -Name "ProductVersion" -ErrorAction SilentlyContinue).ProductVersion
+        if (-not $sdkVersion) {
+            $sdkVersion = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\Include" | Sort-Object Name -Descending | Select-Object -First 1).Name
+        }
+        if ($sdkVersion -and $sdkVersion -notmatch '\.0$') { $sdkVersion = "$sdkVersion.0" }
+        
+        Write-Output "Found Windows SDK: $sdkVersion"
+        
+        # Build using the dynamically discovered SDK version
+        if ($sdkVersion) {
+            msbuild EasyAntiCheat.sln /p:Configuration=Release /p:Platform=x64 /p:WindowsTargetPlatformVersion="$sdkVersion"
+        } else {
+            msbuild EasyAntiCheat.sln /p:Configuration=Release /p:Platform=x64
+        }
 
     - name: Upload Finished DLL
       uses: actions/upload-artifact@v4
